@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Estudiantes</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root{
+            --bg:#F5F2EC; --ink:#16302B; --muted:#6C7B74;
+            --teal:#1F7A6D; --teal-dark:#155D53; --amber:#D89216;
+            --card:#FFFFFF; --line:#E4DFD4; --danger:#B4442F;
+        }
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{
+            font-family:'Inter',system-ui,sans-serif;
+            background:var(--bg); color:var(--ink);
+            line-height:1.5; padding:40px 20px; min-height:100vh;
+        }
+        .wrap{max-width:960px; margin:0 auto}
+        header{margin-bottom:32px}
+        .eyebrow{
+            font-size:12px; letter-spacing:.14em; text-transform:uppercase;
+            color:var(--teal); font-weight:600; margin-bottom:8px;
+        }
+        h1{
+            font-family:'Fraunces',serif; font-weight:600;
+            font-size:clamp(28px,5vw,44px); line-height:1.05; letter-spacing:-.01em;
+        }
+        h1 em{font-style:italic; color:var(--teal)}
+        .sub{color:var(--muted); margin-top:10px; max-width:52ch}
+        .grid{display:grid; grid-template-columns:360px 1fr; gap:24px; align-items:start}
+        @media(max-width:760px){.grid{grid-template-columns:1fr}}
+        .card{
+            background:var(--card); border:1px solid var(--line);
+            border-radius:16px; padding:24px;
+        }
+        .card h2{
+            font-family:'Fraunces',serif; font-weight:600; font-size:20px;
+            margin-bottom:18px;
+        }
+        label{display:block; font-size:13px; font-weight:500; margin-bottom:6px}
+        .field{margin-bottom:14px}
+        .hint{font-size:11px; color:var(--muted); margin-top:4px}
+        input, select{
+            width:100%; padding:11px 13px; font:inherit; font-size:14px;
+            border:1px solid var(--line); border-radius:9px; background:#FCFBF8;
+            transition:border-color .15s, box-shadow .15s;
+        }
+        input:focus, select:focus{
+            outline:none; border-color:var(--teal);
+            box-shadow:0 0 0 3px rgba(31,122,109,.14);
+        }
+        button{font:inherit; cursor:pointer; border:none}
+        .btn-primary{
+            width:100%; margin-top:6px; padding:12px; border-radius:9px;
+            background:var(--teal); color:#fff; font-weight:600; font-size:15px;
+            transition:background .15s, transform .05s;
+        }
+        .btn-primary:hover{background:var(--teal-dark)}
+        .btn-primary:active{transform:translateY(1px)}
+        .btn-primary:disabled{opacity:.6; cursor:default}
+        .btn-secondary{
+            width:100%; margin-top:8px; padding:9px 12px; border-radius:9px;
+            background:#E8F1EE; color:var(--teal-dark); font-weight:600; font-size:13px;
+            transition:background .15s, opacity .15s;
+        }
+        .btn-secondary:hover{background:#D8E8E2}
+        .btn-secondary:disabled{opacity:.55; cursor:default}
+        .selected-courses{
+            margin-top:12px; padding:12px; border:1px solid var(--line);
+            border-radius:10px; background:#FCFBF8;
+        }
+        .selected-courses-head{
+            display:flex; justify-content:space-between; align-items:center;
+            margin-bottom:8px; font-size:12px; font-weight:600;
+        }
+        .selected-courses-count{color:var(--teal)}
+        .selected-courses-list{display:grid; gap:7px}
+        .course-chip{
+            display:flex; justify-content:space-between; align-items:center; gap:10px;
+            padding:8px 9px; border:1px solid var(--line); border-radius:8px;
+            background:#fff; font-size:12px;
+        }
+        .course-chip-name{font-weight:600}
+        .course-chip-career{color:var(--muted); font-size:11px}
+        .btn-remove-course{
+            flex:0 0 auto; background:none; color:var(--danger);
+            font-size:11px; font-weight:600; padding:3px 5px;
+        }
+        .btn-remove-course:hover{text-decoration:underline}
+        .empty-selection{color:var(--muted); font-size:12px}
+        .list-head{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:18px}
+        .count{font-size:13px; color:var(--muted)}
+        table{width:100%; border-collapse:collapse; font-size:14px}
+        th{
+            text-align:left; font-size:11px; letter-spacing:.06em; text-transform:uppercase;
+            color:var(--muted); font-weight:600; padding:0 10px 10px; border-bottom:1px solid var(--line);
+        }
+        td{padding:12px 10px; border-bottom:1px solid var(--line); vertical-align:middle}
+        tr:last-child td{border-bottom:none}
+        .carnet{font-variant-numeric:tabular-nums; font-weight:600}
+        .nombre{font-weight:500}
+        .correo{color:var(--muted); font-size:13px}
+        .btn-del{
+            background:none; color:var(--danger); font-size:13px; font-weight:500;
+            padding:6px 10px; border-radius:7px;
+        }
+        .btn-del:hover{background:rgba(180,68,47,.08)}
+        .empty{padding:40px 10px; text-align:center; color:var(--muted); font-size:14px}
+        /* Toast */
+        #toast{
+            position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(20px);
+            background:var(--ink); color:#fff; padding:14px 22px; border-radius:12px;
+            font-size:14px; font-weight:500; display:flex; align-items:center; gap:10px;
+            opacity:0; pointer-events:none; transition:opacity .25s, transform .25s;
+            box-shadow:0 8px 30px rgba(0,0,0,.18); z-index:50;
+        }
+        #toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+        #toast.error{background:var(--danger)}
+        #toast .check{
+            width:22px; height:22px; border-radius:50%; background:var(--amber);
+            color:var(--ink); display:grid; place-items:center; font-weight:700; font-size:13px;
+        }
+        #toast.error .check{background:#fff; color:var(--danger)}
+        @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <header>
+        <div class="eyebrow">Hoja de trabajo 1 · CRUD</div>
+        <h1>Registro de <em>estudiantes</em></h1>
+        <p class="sub">Registrá un estudiante y aparecerá al instante en la lista. Al eliminar, no se borra de la base: se marca como <strong>ELIMINADO</strong> (baja lógica).</p>
+    </header>
+
+    <div class="grid">
+        <!-- Formulario -->
+        <div class="card">
+            <h2>Nuevo estudiante</h2>
+            <div class="field">
+                <label for="carnet">Carné</label>
+                <input id="carnet" inputmode="numeric" placeholder="2024001">
+                <div class="hint">Solo dígitos, de 6 a 20.</div>
+            </div>
+            <div class="field">
+                <label for="nombre">Nombre completo</label>
+                <input id="nombre" placeholder="Juan Pérez">
+            </div>
+            <div class="field">
+                <label for="correo">Correo</label>
+                <input id="correo" type="email" placeholder="juan@umg.edu.gt">
+            </div>
+            <div class="field">
+                <label for="telefono">Teléfono</label>
+                <input id="telefono" inputmode="numeric" placeholder="55551234">
+                <div class="hint">Exactamente 8 dígitos (opcional).</div>
+            </div>
+            <div class="field">
+                <label for="carrera">Carrera</label>
+                <select id="carrera" disabled>
+                    <option value="">Cargando carreras...</option>
+                </select>
+            </div>
+            <div class="field">
+                <label for="cursos">Cursos</label>
+                <select id="cursos" disabled>
+                    <option value="">Seleccioná primero una carrera</option>
+                </select>
+                <button class="btn-secondary" id="btnAgregarCurso" type="button" disabled>
+                    Agregar curso
+                </button>
+                <div class="hint">Elegí una carrera, seleccioná un curso y presioná “Agregar curso”. Podés repetir el proceso con otras carreras.</div>
+                <div class="selected-courses">
+                    <div class="selected-courses-head">
+                        <span>Cursos asignados</span>
+                        <span class="selected-courses-count" id="cursoCount">0</span>
+                    </div>
+                    <div class="selected-courses-list" id="cursosSeleccionados">
+                        <div class="empty-selection">Todavía no agregaste cursos.</div>
+                    </div>
+                </div>
+            </div>
+            <button class="btn-primary" id="btnGuardar">Registrar estudiante</button>
+        </div>
+
+        <!-- Lista -->
+        <div class="card">
+            <div class="list-head">
+                <h2 style="margin:0">Estudiantes activos</h2>
+                <span class="count" id="count">—</span>
+            </div>
+            <div id="tabla"></div>
+        </div>
+    </div>
+</div>
+
+<div id="toast"><span class="check">✓</span><span id="toastMsg"></span></div>
+
+<script>
+    const API = '/api/estudiantes';
+    const API_CARRERAS = '/api/carreras';
+    const API_CURSOS = '/api/cursos';
+    let carrerasCatalogo = [];
+    let cursosCatalogo = [];
+    const cursosSeleccionados = new Map();
+
+    // --- Toast ---
+    let toastTimer;
+    function toast(msg, esError=false){
+        const t = document.getElementById('toast');
+        document.getElementById('toastMsg').textContent = msg;
+        t.classList.toggle('error', esError);
+        t.querySelector('.check').textContent = esError ? '!' : '✓';
+        t.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(()=>t.classList.remove('show'), 3200);
+    }
+
+    // --- Cargar catálogo de carreras ---
+    async function cargarCarreras(){
+        const select = document.getElementById('carrera');
+        try{
+            const res = await fetch(API_CARRERAS);
+            if(!res.ok) throw new Error('No se pudo cargar el catálogo');
+            const carreras = await res.json();
+            const placeholder = document.createElement('option');
+            placeholder.value = '';
+            placeholder.textContent = 'Seleccioná una carrera';
+            select.replaceChildren(placeholder);
+            carrerasCatalogo = carreras;
+            carreras.forEach(carrera => {
+                const option = document.createElement('option');
+                option.value = carrera.nombre;
+                option.textContent = carrera.nombre;
+                select.appendChild(option);
+            });
+            select.disabled = false;
+            await cargarCursos();
+        }catch(err){
+            const option = document.createElement('option');
+            option.value = '';
+            option.textContent = 'No se pudieron cargar las carreras';
+            select.replaceChildren(option);
+            mostrarErrorCursos('No se pudieron cargar los cursos');
+            toast('No se pudo cargar el catálogo de carreras.', true);
+        }
+    }
+
+    // --- Cargar cursos agrupados por carrera ---
+    async function cargarCursos(){
+        const select = document.getElementById('cursos');
+        try{
+            const res = await fetch(API_CURSOS);
+            if(!res.ok) throw new Error('No se pudo cargar el catálogo');
+            cursosCatalogo = await res.json();
+            actualizarCursosDisponibles();
+        }catch(err){
+            mostrarErrorCursos('No se pudieron cargar los cursos');
+            toast('No se pudo cargar el catálogo de cursos.', true);
+        }
+    }
+
+    function actualizarCursosDisponibles(){
+        const carreraSelect = document.getElementById('carrera');
+        const cursoSelect = document.getElementById('cursos');
+        const agregarButton = document.getElementById('btnAgregarCurso');
+        const carrera = carrerasCatalogo.find(item => item.nombre === carreraSelect.value);
+
+        cursoSelect.replaceChildren();
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+
+        if(!carrera){
+            placeholder.textContent = 'Seleccioná primero una carrera';
+            cursoSelect.appendChild(placeholder);
+            cursoSelect.disabled = true;
+            agregarButton.disabled = true;
+            return;
+        }
+
+        const disponibles = cursosCatalogo.filter(curso =>
+            String(curso.carreraId) === String(carrera.id) &&
+            !cursosSeleccionados.has(curso.id));
+
+        if(disponibles.length === 0){
+            placeholder.textContent = 'Ya agregaste los cursos de esta carrera';
+            cursoSelect.appendChild(placeholder);
+            cursoSelect.disabled = true;
+            agregarButton.disabled = true;
+            return;
+        }
+
+        placeholder.textContent = 'Seleccioná un curso';
+        cursoSelect.appendChild(placeholder);
+        disponibles.forEach(curso => {
+            const option = document.createElement('option');
+            option.value = String(curso.id);
+            option.textContent = curso.codigo + ' - ' + curso.nombre;
+            cursoSelect.appendChild(option);
+        });
+        cursoSelect.disabled = false;
+        agregarButton.disabled = true;
+    }
+
+    function mostrarErrorCursos(mensaje){
+        const select = document.getElementById('cursos');
+        const agregarButton = document.getElementById('btnAgregarCurso');
+        const option = document.createElement('option');
+        option.value = '';
+        option.textContent = mensaje;
+        select.replaceChildren(option);
+        select.disabled = true;
+        agregarButton.disabled = true;
+    }
+
+    function agregarCurso(){
+        const cursoSelect = document.getElementById('cursos');
+        const cursoId = Number(cursoSelect.value);
+        const curso = cursosCatalogo.find(item => item.id === cursoId);
+        if(!curso || cursosSeleccionados.has(cursoId)) return;
+
+        cursosSeleccionados.set(cursoId, curso);
+        renderizarCursosSeleccionados();
+        actualizarCursosDisponibles();
+    }
+
+    function renderizarCursosSeleccionados(){
+        const container = document.getElementById('cursosSeleccionados');
+        const count = document.getElementById('cursoCount');
+        count.textContent = String(cursosSeleccionados.size);
+        container.replaceChildren();
+
+        if(cursosSeleccionados.size === 0){
+            const empty = document.createElement('div');
+            empty.className = 'empty-selection';
+            empty.textContent = 'Todavía no agregaste cursos.';
+            container.appendChild(empty);
+            return;
+        }
+
+        cursosSeleccionados.forEach(curso => {
+            const carrera = carrerasCatalogo.find(item =>
+                String(item.id) === String(curso.carreraId));
+            const item = document.createElement('div');
+            item.className = 'course-chip';
+
+            const text = document.createElement('div');
+            const name = document.createElement('div');
+            name.className = 'course-chip-name';
+            name.textContent = curso.codigo + ' - ' + curso.nombre;
+            const career = document.createElement('div');
+            career.className = 'course-chip-career';
+            career.textContent = carrera ? carrera.nombre : 'Carrera no disponible';
+            text.append(name, career);
+
+            const removeButton = document.createElement('button');
+            removeButton.type = 'button';
+            removeButton.className = 'btn-remove-course';
+            removeButton.textContent = 'Quitar';
+            removeButton.addEventListener('click', () => {
+                cursosSeleccionados.delete(curso.id);
+                renderizarCursosSeleccionados();
+                actualizarCursosDisponibles();
+            });
+
+            item.append(text, removeButton);
+            container.appendChild(item);
+        });
+    }
+
+    // --- Cargar lista ---
+    async function cargar(){
+        try{
+            const res = await fetch(API);
+            if(!res.ok) throw new Error('No se pudo cargar la lista');
+            const data = await res.json();
+            document.getElementById('count').textContent =
+                data.length + (data.length === 1 ? ' estudiante' : ' estudiantes');
+            const cont = document.getElementById('tabla');
+            cont.replaceChildren();
+            if(data.length === 0){
+                const empty = document.createElement('div');
+                empty.className = 'empty';
+                empty.append(document.createTextNode('Todavía no hay estudiantes.'));
+                empty.append(document.createElement('br'));
+                empty.append(document.createTextNode('Registrá el primero con el formulario.'));
+                cont.appendChild(empty);
+                return;
+            }
+
+            const table = document.createElement('table');
+            const thead = document.createElement('thead');
+            const headerRow = document.createElement('tr');
+            ['Carné', 'Estudiante', 'Carrera', ''].forEach(text => {
+                const cell = document.createElement('th');
+                cell.textContent = text;
+                headerRow.appendChild(cell);
+            });
+            thead.appendChild(headerRow);
+
+            const tbody = document.createElement('tbody');
+            data.forEach(estudiante => {
+                const row = document.createElement('tr');
+
+                const carnetCell = document.createElement('td');
+                carnetCell.className = 'carnet';
+                carnetCell.textContent = estudiante.carnet;
+                row.appendChild(carnetCell);
+
+                const studentCell = document.createElement('td');
+                const name = document.createElement('div');
+                name.className = 'nombre';
+                name.textContent = estudiante.nombreCompleto;
+                const email = document.createElement('div');
+                email.className = 'correo';
+                email.textContent = estudiante.correo;
+                studentCell.append(name, email);
+                row.appendChild(studentCell);
+
+                const careerCell = document.createElement('td');
+                careerCell.textContent = estudiante.carrera;
+                row.appendChild(careerCell);
+
+                const actionsCell = document.createElement('td');
+                actionsCell.style.textAlign = 'right';
+                const deleteButton = document.createElement('button');
+                deleteButton.className = 'btn-del';
+                deleteButton.dataset.id = String(estudiante.id);
+                deleteButton.textContent = 'Eliminar';
+                deleteButton.addEventListener('click', () =>
+                    eliminar(deleteButton.dataset.id, name.textContent));
+                actionsCell.appendChild(deleteButton);
+                row.appendChild(actionsCell);
+                tbody.appendChild(row);
+            });
+
+            table.append(thead, tbody);
+            cont.appendChild(table);
+        }catch(err){
+            const empty = document.createElement('div');
+            empty.className = 'empty';
+            empty.textContent = 'No se pudo cargar la lista. ¿Está corriendo el programa?';
+            document.getElementById('tabla').replaceChildren(empty);
+        }
+    }
+
+    // --- Registrar ---
+    async function registrar(){
+        const estudiante = {
+            carnet: val('carnet'),
+            nombreCompleto: val('nombre'),
+            correo: val('correo'),
+            telefono: val('telefono') || null,
+            carrera: val('carrera')
+        };
+        const cursoIds = Array.from(cursosSeleccionados.keys());
+        if(!estudiante.carnet || !estudiante.nombreCompleto || !estudiante.correo || !estudiante.carrera){
+            toast('Completá carné, nombre, correo y carrera.', true);
+            return;
+        }
+        const btn = document.getElementById('btnGuardar');
+        btn.disabled = true;
+        try{
+            const res = await fetch(API, {
+                method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body: JSON.stringify(estudiante)
+            });
+            if(res.ok){
+                const creado = await res.json();
+                if(cursoIds.length > 0){
+                    const asignacion = await fetch(API + '/' + creado.id + '/cursos', {
+                        method:'PUT',
+                        headers:{'Content-Type':'application/json'},
+                        body: JSON.stringify({cursoIds})
+                    });
+                    if(!asignacion.ok){
+                        limpiar();
+                        cargar();
+                        toast('Estudiante registrado, pero no se pudieron asignar los cursos; no se envió correo.', true);
+                        return;
+                    }
+                }
+                toast(cursoIds.length > 0
+                    ? 'Estudiante registrado y cursos asignados'
+                    : 'Estudiante registrado');
+                limpiar();
+                cargar();
+            }else if(res.status === 409 || res.status === 500){
+                toast('Ese carné o correo ya existe.', true);
+            }else{
+                toast('No se pudo registrar (revisá los datos).', true);
+            }
+        }catch(err){
+            toast('Error de conexión con el servidor.', true);
+        }finally{
+            btn.disabled = false;
+        }
+    }
+
+    // --- Eliminar (baja lógica) ---
+    async function eliminar(id, nombre){
+        if(!confirm('¿Eliminar a ' + nombre + '? (baja lógica)')) return;
+        try{
+            const res = await fetch(API + '/' + id, { method:'DELETE' });
+            if(res.ok){
+                toast('Estudiante eliminado');
+                cargar();
+            }else{
+                toast('No se pudo eliminar.', true);
+            }
+        }catch(err){
+            toast('Error de conexión con el servidor.', true);
+        }
+    }
+
+    // --- Utilidades ---
+    function val(id){ return document.getElementById(id).value.trim(); }
+    function limpiar(){
+        ['carnet','nombre','correo','telefono','carrera'].forEach(id => document.getElementById(id).value='');
+        cursosSeleccionados.clear();
+        renderizarCursosSeleccionados();
+        actualizarCursosDisponibles();
+    }
+
+    // Enter en cualquier campo = registrar
+    document.getElementById('btnGuardar').addEventListener('click', registrar);
+    document.getElementById('carrera').addEventListener('change', actualizarCursosDisponibles);
+    document.getElementById('cursos').addEventListener('change', event => {
+        document.getElementById('btnAgregarCurso').disabled = event.target.value === '';
+    });
+    document.getElementById('btnAgregarCurso').addEventListener('click', agregarCurso);
+    document.querySelectorAll('input').forEach(inp =>
+        inp.addEventListener('keydown', e => { if(e.key === 'Enter') registrar(); })
+    );
+
+    renderizarCursosSeleccionados();
+    cargarCarreras();
+    cargar();
+</script>
+</body>
+</html>
