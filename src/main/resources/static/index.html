@@ -14,6 +14,8 @@
             --card:#FFFFFF; --line:#E4DFD4; --danger:#B4442F;
         }
         *{box-sizing:border-box;margin:0;padding:0}
+        /* El atributo hidden siempre debe ocultar, incluso si una clase define display */
+        [hidden]{display:none !important}
         body{
             font-family:'Inter',system-ui,sans-serif;
             background:var(--bg); color:var(--ink);
@@ -154,7 +156,7 @@
         <button class="btn-secondary" id="btnToggleAuth" type="button">¿No tenés cuenta? Registrate</button>
     </div>
 
-    <div class="grid" id="mainContent">
+    <div class="grid" id="mainContent" hidden>
         <!-- Formulario -->
         <div class="card">
             <h2>Nuevo estudiante</h2>
