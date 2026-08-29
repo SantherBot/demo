@@ -69,6 +69,9 @@
         }
         .btn-secondary:hover{background:#D8E8E2}
         .btn-secondary:disabled{opacity:.55; cursor:default}
+        .btn-logout{width:auto; margin-top:0; padding:7px 12px; font-size:12px}
+        .auth-card{max-width:420px; margin:0 auto 32px}
+        .auth-card .btn-primary{margin-top:14px}
         .selected-courses{
             margin-top:12px; padding:12px; border:1px solid var(--line);
             border-radius:10px; background:#FCFBF8;
@@ -136,7 +139,22 @@
         <p class="sub">Registrá un estudiante y aparecerá al instante en la lista. Al eliminar, no se borra de la base: se marca como <strong>ELIMINADO</strong> (baja lógica).</p>
     </header>
 
-    <div class="grid">
+    <!-- Login / Registro -->
+    <div class="card auth-card" id="authCard" hidden>
+        <h2 id="authTitle">Iniciar sesión</h2>
+        <div class="field">
+            <label for="authUsername">Usuario</label>
+            <input id="authUsername" autocomplete="username" placeholder="tu_usuario">
+        </div>
+        <div class="field">
+            <label for="authPassword">Contraseña</label>
+            <input id="authPassword" type="password" autocomplete="current-password" placeholder="••••••••">
+        </div>
+        <button class="btn-primary" id="btnEntrar" type="button">Entrar</button>
+        <button class="btn-secondary" id="btnToggleAuth" type="button">¿No tenés cuenta? Registrate</button>
+    </div>
+
+    <div class="grid" id="mainContent">
         <!-- Formulario -->
         <div class="card">
             <h2>Nuevo estudiante</h2>
@@ -190,7 +208,10 @@
         <div class="card">
             <div class="list-head">
                 <h2 style="margin:0">Estudiantes activos</h2>
-                <span class="count" id="count">—</span>
+                <div style="display:flex; align-items:center; gap:12px">
+                    <span class="count" id="count">—</span>
+                    <button class="btn-secondary btn-logout" id="btnLogout" type="button">Cerrar sesión</button>
+                </div>
             </div>
             <div id="tabla"></div>
         </div>
@@ -200,9 +221,11 @@
 <div id="toast"><span class="check">✓</span><span id="toastMsg"></span></div>
 
 <script>
-    const API = '/api/estudiantes';
+const API = '/api/estudiantes';
     const API_CARRERAS = '/api/carreras';
     const API_CURSOS = '/api/cursos';
+    const API_AUTH = '/api/auth';
+    const TOKEN_KEY = 'jwt_token';
     let carrerasCatalogo = [];
     let cursosCatalogo = [];
     const cursosSeleccionados = new Map();
@@ -219,11 +242,108 @@
         toastTimer = setTimeout(()=>t.classList.remove('show'), 3200);
     }
 
+    // --- Sesión y fetch autenticado ---
+    function getToken(){ return localStorage.getItem(TOKEN_KEY); }
+    function setToken(token){ localStorage.setItem(TOKEN_KEY, token); }
+    function clearToken(){ localStorage.removeItem(TOKEN_KEY); }
+
+    // Wrapper que agrega el header Authorization; si el servidor
+    // responde 401 con token presente, la sesión expiró: limpia y vuelve al login.
+    async function apiFetch(url, options){
+        const opts = options || {};
+        const headers = Object.assign({}, opts.headers || {});
+        const token = getToken();
+        if(token) headers['Authorization'] = 'Bearer ' + token;
+        const res = await fetch(url, Object.assign({}, opts, {headers}));
+        if(res.status === 401 && token){
+            clearToken();
+            mostrarLogin();
+            toast('La sesión expiró. Volvé a iniciar sesión.', true);
+        }
+        return res;
+    }
+
+    function mostrarLogin(){
+        document.getElementById('authCard').hidden = false;
+        document.getElementById('mainContent').hidden = true;
+        document.getElementById('btnLogout').hidden = true;
+    }
+
+    function mostrarApp(){
+        document.getElementById('authCard').hidden = true;
+        document.getElementById('mainContent').hidden = false;
+        document.getElementById('btnLogout').hidden = false;
+    }
+
+    // --- Login / Registro ---
+    let modoRegistro = false;
+
+    function toggleModoAuth(){
+        modoRegistro = !modoRegistro;
+        document.getElementById('authTitle').textContent =
+            modoRegistro ? 'Crear cuenta' : 'Iniciar sesión';
+        document.getElementById('btnEntrar').textContent =
+            modoRegistro ? 'Registrarse' : 'Entrar';
+        document.getElementById('btnToggleAuth').textContent =
+            modoRegistro ? 'Ya tengo cuenta. Entrar' : '¿No tenés cuenta? Registrate';
+        const password = document.getElementById('authPassword');
+        password.autocomplete = modoRegistro ? 'new-password' : 'current-password';
+        password.placeholder = modoRegistro ? 'Mínimo 8 caracteres' : '••••••••';
+    }
+
+    async function enviarAuth(){
+        const username = val('authUsername');
+        const password = document.getElementById('authPassword').value;
+        if(!username || !password){
+            toast('Completá usuario y contraseña.', true);
+            return;
+        }
+        const btn = document.getElementById('btnEntrar');
+        btn.disabled = true;
+        try{
+            const res = await apiFetch(API_AUTH + (modoRegistro ? '/register' : '/login'), {
+                method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({username, password})
+            });
+            if(res.ok){
+                if(modoRegistro){
+                    toast('Cuenta creada. Ahora iniciá sesión.');
+                    toggleModoAuth();
+                    return;
+                }
+                const data = await res.json();
+                setToken(data.token);
+                mostrarApp();
+                toast('¡Hola, ' + data.username + '!');
+                cargarCarreras();
+                cargar();
+            }else if(res.status === 409){
+                toast('Ese usuario ya existe.', true);
+            }else if(res.status === 401){
+                toast('Usuario o contraseña incorrectos.', true);
+            }else{
+                toast('No se pudo completar la operación.', true);
+            }
+        }catch(err){
+            toast('Error de conexión con el servidor.', true);
+        }finally{
+            btn.disabled = false;
+        }
+    }
+
+    function cerrarSesion(){
+        clearToken();
+        document.getElementById('authPassword').value = '';
+        mostrarLogin();
+        toast('Sesión cerrada.');
+    }
+
     // --- Cargar catálogo de carreras ---
     async function cargarCarreras(){
         const select = document.getElementById('carrera');
         try{
-            const res = await fetch(API_CARRERAS);
+            const res = await apiFetch(API_CARRERAS);
             if(!res.ok) throw new Error('No se pudo cargar el catálogo');
             const carreras = await res.json();
             const placeholder = document.createElement('option');
@@ -253,7 +373,7 @@
     async function cargarCursos(){
         const select = document.getElementById('cursos');
         try{
-            const res = await fetch(API_CURSOS);
+            const res = await apiFetch(API_CURSOS);
             if(!res.ok) throw new Error('No se pudo cargar el catálogo');
             cursosCatalogo = await res.json();
             actualizarCursosDisponibles();
@@ -374,7 +494,7 @@
     // --- Cargar lista ---
     async function cargar(){
         try{
-            const res = await fetch(API);
+            const res = await apiFetch(API);
             if(!res.ok) throw new Error('No se pudo cargar la lista');
             const data = await res.json();
             document.getElementById('count').textContent =
@@ -464,7 +584,7 @@
         const btn = document.getElementById('btnGuardar');
         btn.disabled = true;
         try{
-            const res = await fetch(API, {
+            const res = await apiFetch(API, {
                 method:'POST',
                 headers:{'Content-Type':'application/json'},
                 body: JSON.stringify(estudiante)
@@ -472,7 +592,7 @@
             if(res.ok){
                 const creado = await res.json();
                 if(cursoIds.length > 0){
-                    const asignacion = await fetch(API + '/' + creado.id + '/cursos', {
+                    const asignacion = await apiFetch(API + '/' + creado.id + '/cursos', {
                         method:'PUT',
                         headers:{'Content-Type':'application/json'},
                         body: JSON.stringify({cursoIds})
@@ -505,7 +625,7 @@
     async function eliminar(id, nombre){
         if(!confirm('¿Eliminar a ' + nombre + '? (baja lógica)')) return;
         try{
-            const res = await fetch(API + '/' + id, { method:'DELETE' });
+            const res = await apiFetch(API + '/' + id, { method:'DELETE' });
             if(res.ok){
                 toast('Estudiante eliminado');
                 cargar();
@@ -533,13 +653,26 @@
         document.getElementById('btnAgregarCurso').disabled = event.target.value === '';
     });
     document.getElementById('btnAgregarCurso').addEventListener('click', agregarCurso);
-    document.querySelectorAll('input').forEach(inp =>
+document.querySelectorAll('input:not(#authUsername):not(#authPassword)').forEach(inp =>
         inp.addEventListener('keydown', e => { if(e.key === 'Enter') registrar(); })
     );
 
     renderizarCursosSeleccionados();
-    cargarCarreras();
-    cargar();
+    document.getElementById('btnEntrar').addEventListener('click', enviarAuth);
+    document.getElementById('btnToggleAuth').addEventListener('click', toggleModoAuth);
+    document.getElementById('btnLogout').addEventListener('click', cerrarSesion);
+    ['authUsername', 'authPassword'].forEach(id =>
+        document.getElementById(id).addEventListener('keydown',
+            e => { if(e.key === 'Enter') enviarAuth(); })
+    );
+
+    if(getToken()){
+        mostrarApp();
+        cargarCarreras();
+        cargar();
+    }else{
+        mostrarLogin();
+    }
 </script>
 </body>
 </html>
