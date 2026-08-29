@@ -29,7 +29,7 @@ public class AuthService {
     public AuthService(UsuarioRepository repository,
                        PasswordEncoder passwordEncoder,
                        JwtEncoder jwtEncoder,
-                       @Value("${jwt.expiration-seconds:7200}") long expirationSeconds) {
+                       @Value("${jwt.expiration-seconds:60}") long expirationSeconds) {
         this.repository = repository;
         this.passwordEncoder = passwordEncoder;
         this.jwtEncoder = jwtEncoder;
